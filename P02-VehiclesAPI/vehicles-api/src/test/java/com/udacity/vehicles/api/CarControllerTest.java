@@ -38,7 +38,7 @@ import org.springframework.test.web.servlet.MockMvc;
  * Implements testing of the CarController class.
  */
 @RunWith(SpringRunner.class)
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @AutoConfigureJsonTesters
 public class CarControllerTest {
@@ -48,6 +48,9 @@ public class CarControllerTest {
 
     @Autowired
     private JacksonTester<Car> json;
+
+    @Autowired
+    private TestRestTemplate restTemplate;
 
     @MockBean
     private CarService carService;
@@ -62,7 +65,7 @@ public class CarControllerTest {
      * Creates pre-requisites for testing, such as an example car.
      */
     @Before
-    public void setup() {
+    public void setup() throws Throwable {
         Car car = getCar();
         car.setId(1L);
         given(carService.save(any())).willReturn(car);
@@ -96,7 +99,23 @@ public class CarControllerTest {
          *   the whole list of vehicles. This should utilize the car from `getCar()`
          *   below (the vehicle will be the first in the list).
          */
+        Car car = getCar();
 
+         mvc.perform(get("/cars"))
+                .andExpect(status().isOk());
+
+        verify(carService, times(1)).list();
+
+    }
+
+    @Test
+    public void updateCar() throws Exception {
+       Car car = getCar();
+        mvc.perform(put(new URI("/cars/1"))
+                .content(json.write(car).getJson())
+                .contentType(MediaType.APPLICATION_JSON_UTF8)
+                .accept(MediaType.APPLICATION_JSON_UTF8))
+                .andExpect(status().isOk());
     }
 
     /**
@@ -109,6 +128,11 @@ public class CarControllerTest {
          * TODO: Add a test to check that the `get` method works by calling
          *   a vehicle by ID. This should utilize the car from `getCar()` below.
          */
+        Car car = getCar();
+        mvc.perform(get("/cars/1"))
+                .andExpect(status().isOk());
+        verify(carService, times(1)).findById((long) 1);
+
     }
 
     /**
@@ -122,6 +146,10 @@ public class CarControllerTest {
          *   when the `delete` method is called from the Car Controller. This
          *   should utilize the car from `getCar()` below.
          */
+        Car car = getCar();
+        mvc.perform(delete("/cars/1"))
+                .andExpect(status().isNoContent());
+
     }
 
     /**
